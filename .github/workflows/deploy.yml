@@ -1,4 +1,4 @@
-name: Build & Deploy (pygbag)
+name: Build & Deploy (pygbag self-contained)
 
 on:
   push:
@@ -12,11 +12,9 @@ jobs:
   build_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -25,23 +23,23 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pygbag
 
-      - name: Build web (WASM)
+      - name: Build (HTML embedded)
         run: |
-          pygbag --build src
+          # --html: daha "paketli" üretir, GH Pages'te daha az sürpriz çıkarır
+          python -m pygbag --build --html --ume_block 0 src
 
-          if [ -d "src/build/web" ]; then
-            rm -rf web && cp -R src/build/web web
-          elif [ -d "build/web" ]; then
-            rm -rf web && cp -R build/web web
-          else
-            echo "ERROR: pygbag output not found." >&2
+          # pygbag çıktısı genelde src/build/web olur
+          if [ ! -d "src/build/web" ]; then
+            echo "ERROR: src/build/web not found"
             find . -maxdepth 4 -type d -print
             exit 1
           fi
 
+          rm -rf web
+          cp -R src/build/web web
           touch web/.nojekyll
 
-      - name: Deploy to GitHub Pages (gh-pages)
+      - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
